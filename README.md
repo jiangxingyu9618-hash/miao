@@ -4,11 +4,19 @@
 
 ## 直接运行（推荐，不需要装 Python）
 
-从 Release 下载 `月薪喵桌宠-手势完整版.zip`，解压到任意目录，双击 `月薪喵.exe`。
+从 Release 下载 `月薪喵桌宠-便携版.zip`，约 208 MB，解压到任意目录，中文路径也可以。双击 `启动.bat`。
 
-只想要手势，双击 `start_gesture.bat`，或者右键宠物选「开启 CV 手势控制」。
+要手势，双击 `启动-手势.bat`。不确定环境能不能跑，双击 `环境自检.bat`，它会打印实际使用的 Python 路径和依赖版本。
 
-镜头权限在第一次运行时会由 Windows 弹窗询问，允许即可。
+包里带完整解释器和依赖，`runtime\` 里有 Python 3.11 加 mediapipe、OpenCV、PyQt5，和系统上装没装 Python 无关，删掉 `runtime\` 就跑不起来。
+
+镜头权限在第一次运行时会由 Windows 弹窗询问，允许即可。摄像头同一时间只能给一个程序用。
+
+### 这个包处理掉的两个坑
+
+mediapipe 的 C++ 层打不开含中文的路径，报 `Unable to open file at ...` 并且路径变成乱码。程序启动时检查模型路径，不是纯 ASCII 就复制一份到 `C:\Users\Public\YueXinMiao\` 再读原文。
+
+mediapipe 和 Qt 在同一个进程里初始化，顺序不对就会 DLL 初始化失败，PyQt5 直接 abort，退出码 0xC0000409，没有任何 traceback。识别跑在独立子进程，主程序只读状态文件，两者不共享进程。
 
 ## 从源码运行
 
@@ -73,12 +81,15 @@ requirements.txt       锁定版本
 
 ## 打包
 
-```
-pip install pyinstaller
-python build.py
-```
+PyInstaller 这套依赖上用不了。`--collect-all mediapipe` 和精简参数都卡在 `Looking for dynamic libraries` 不动，进程占着内存但 CPU 停住，十分钟没有新日志。便携包是手工搭的：
 
-产物在 `dist/月薪喵/`，把整个目录打 zip 分发。
+1. 下载 `python-3.11.6-embed-amd64.zip`，解压到 `runtime\`
+2. 改 `runtime\python311._pth`，四行：`python311.zip`、`.`、`Lib\site-packages`、`import site`
+3. 从 `C:\Windows\System32` 复制 `msvcp140.dll`、`msvcp140_1.dll`、`msvcp140_2.dll`、`concrt140.dll`、`vcomp140.dll` 到 `runtime\`。embeddable 只带 vcruntime140 系列，缺这几个 PyQt5 和 mediapipe 起不来
+4. 把 venv 的 `site-packages` 整体复制进 `runtime\Lib\site-packages`。matplotlib、PIL、fontTools、kiwisolver、cycler、pyparsing、dateutil、contourpy 都不能删，mediapipe 的 `python\solutions\drawing_utils.py` 会 import matplotlib
+5. `app\` 放 `pet.py`、`gesture_service.py`、模型、动画；根目录放三个 bat，都 `chcp 65001`、CRLF，`cd` 到 `app` 再调 `..\runtime\pythonw.exe pet.py`
+
+成品 505 MB，压完 208 MB。真机验证：换目录启动、全新解压启动都正常，32fps，子进程在跑。
 
 ## 许可
 
