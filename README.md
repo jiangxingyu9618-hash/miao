@@ -4,7 +4,11 @@
 
 ## 直接运行（推荐，不需要装 Python）
 
-从 Release 下载 `月薪喵桌宠-便携版.zip`，约 208 MB，解压到任意目录，中文路径也可以。双击 `启动.bat`。
+从 [Releases](../../releases/tag/v1.0.0) 下载 `miao-portable-v1.0.0.zip`，约 208 MB，解压到任意目录，中文路径也可以。双击 `启动.bat`。
+
+下载地址：https://github.com/jiangxingyu9618-hash/miao/releases/download/v1.0.0/miao-portable-v1.0.0.zip
+
+同目录的 `miao-portable-v1.0.0.zip.sha256` 是校验值，`sha256sum -c` 或者用 `Get-FileHash` 对一下。
 
 要手势，双击 `启动-手势.bat`。不确定环境能不能跑，双击 `环境自检.bat`，它会打印实际使用的 Python 路径和依赖版本。
 
