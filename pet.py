@@ -5,10 +5,37 @@ import json
 import subprocess
 from datetime import datetime, timedelta
 
-# 修复虚拟环境中 Qt 平台插件路径找不到的问题
+# Qt 的插件路径是从 Qt5Core.dll 位置推出来的，路径里有中文会被转成问号，
+# 平台插件就找不到、窗口起不来。非 ASCII 时把插件目录复制到公共目录再指过去。
+import shutil
 import PyQt5
-qt_plugin_path = os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins', 'platforms')
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = qt_plugin_path
+
+_QT_KEYS = ("platforms/qwindows.dll", "imageformats/qgif.dll", "styles/qwindowsvistastyle.dll")
+
+
+def _qt_plugins():
+    root = os.path.join(os.path.dirname(PyQt5.__file__), "Qt5", "plugins")
+    try:
+        root.encode("ascii")
+        return root
+    except UnicodeEncodeError:
+        pass
+    base = os.environ.get("PUBLIC") or os.path.join(os.environ.get("SystemDrive", "C:"), "ProgramData")
+    dst = os.path.join(base, "YueXinMiao", "qtplugins")
+    if all(os.path.exists(os.path.join(dst, k)) for k in _QT_KEYS):
+        return dst
+    try:
+        if os.path.isdir(dst):
+            shutil.rmtree(dst, ignore_errors=True)
+        shutil.copytree(root, dst)
+        return dst
+    except Exception:
+        return root
+
+
+qt_plugin_root = _qt_plugins()
+os.environ["QT_PLUGIN_PATH"] = qt_plugin_root
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = os.path.join(qt_plugin_root, "platforms")
 
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QMenu, QAction, QInputDialog
 from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve, QSize, QThread, pyqtSignal
